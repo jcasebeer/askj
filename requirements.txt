@@ -1,0 +1,7 @@
+anthropic>=0.69
+sentence-transformers>=3.0
+numpy>=1.26
+requests>=2.31
+datasets>=2.16
+fastapi>=0.110
+uvicorn>=0.29

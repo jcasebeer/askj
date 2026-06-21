@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ask J</title>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --panel: #fffdf8;
+    --ink: #2b2a26;
+    --muted: #8a8578;
+    --accent: #b5613a;
+    --accent-soft: #f0e3da;
+    --user: #e7ddcf;
+    --line: #e4ded2;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Georgia, "Times New Roman", serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  header {
+    width: 100%;
+    text-align: center;
+    padding: 28px 16px 12px;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 40px;
+    letter-spacing: 0.5px;
+  }
+  header h1 .j { color: var(--accent); font-style: italic; }
+  header p { margin: 6px 0 0; color: var(--muted); font-size: 15px; }
+
+  main {
+    width: 100%;
+    max-width: 760px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 16px 0;
+    min-height: 0;
+  }
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .msg { display: flex; }
+  .msg.user { justify-content: flex-end; }
+  .bubble {
+    max-width: 86%;
+    padding: 12px 16px;
+    border-radius: 14px;
+    line-height: 1.55;
+    font-size: 16px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .msg.user .bubble { background: var(--user); border-bottom-right-radius: 4px; }
+  .msg.bot .bubble {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-bottom-left-radius: 4px;
+  }
+  .empty {
+    color: var(--muted);
+    text-align: center;
+    margin: auto;
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.7;
+  }
+  .empty .ex {
+    display: block;
+    cursor: pointer;
+    color: var(--accent);
+    font-style: normal;
+    font-size: 15px;
+    margin-top: 8px;
+  }
+  .empty .ex:hover { text-decoration: underline; }
+
+  details.sources {
+    margin-top: 10px;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 13px;
+  }
+  details.sources summary {
+    cursor: pointer;
+    color: var(--muted);
+    user-select: none;
+  }
+  details.sources ul { margin: 8px 0 0; padding-left: 18px; }
+  details.sources li { margin-bottom: 8px; color: #5b574d; }
+  details.sources .ref { color: var(--accent); font-weight: 600; }
+  details.sources .tag {
+    display: inline-block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 1px 6px;
+    border-radius: 6px;
+    margin-right: 6px;
+    vertical-align: middle;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  details.sources .tag.dictionary { background: #e3e6dd; color: #5a6b4f; }
+
+  form {
+    width: 100%;
+    max-width: 760px;
+    display: flex;
+    gap: 10px;
+    padding: 12px 16px 22px;
+  }
+  #q {
+    flex: 1;
+    padding: 13px 16px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--panel);
+    font: inherit;
+    font-size: 16px;
+    color: var(--ink);
+    resize: none;
+  }
+  #q:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  button {
+    padding: 0 22px;
+    border: none;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #fff;
+    font: inherit;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .cursor::after { content: "▍"; color: var(--accent); animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 0%,50% { opacity: 1; } 50.01%,100% { opacity: 0; } }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Ask <span class="j">J</span></h1>
+    <p>Questions about the Bible, answered from scripture.</p>
+  </header>
+
+  <main>
+    <div id="chat">
+      <div class="empty" id="placeholder">
+        Ask anything about the Bible.
+        <span class="ex" data-q="What does Jesus teach about forgiveness?">“What does Jesus teach about forgiveness?”</span>
+        <span class="ex" data-q="What are the fruits of the Spirit?">“What are the fruits of the Spirit?”</span>
+        <span class="ex" data-q="What does the Bible say about worry?">“What does the Bible say about worry?”</span>
+      </div>
+    </div>
+  </main>
+
+  <form id="form">
+    <textarea id="q" rows="1" placeholder="Ask a question…" autocomplete="off"></textarea>
+    <button id="send" type="submit">Ask</button>
+  </form>
+
+<script>
+const chat = document.getElementById("chat");
+const form = document.getElementById("form");
+const input = document.getElementById("q");
+const send = document.getElementById("send");
+const placeholder = document.getElementById("placeholder");
+
+function addMessage(role) {
+  if (placeholder) placeholder.remove();
+  const wrap = document.createElement("div");
+  wrap.className = "msg " + role;
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  wrap.appendChild(bubble);
+  chat.appendChild(wrap);
+  chat.scrollTop = chat.scrollHeight;
+  return bubble;
+}
+
+function renderSources(bubble, items) {
+  const details = document.createElement("details");
+  details.className = "sources";
+  const summary = document.createElement("summary");
+  summary.textContent = `Sources (${items.length} passages)`;
+  details.appendChild(summary);
+  const ul = document.createElement("ul");
+  for (const it of items) {
+    const li = document.createElement("li");
+    if (it.source) {
+      const tag = document.createElement("span");
+      tag.className = "tag " + it.source;
+      tag.textContent = it.source === "dictionary" ? "dict" : "verse";
+      li.appendChild(tag);
+    }
+    const ref = document.createElement("span");
+    ref.className = "ref";
+    ref.textContent = it.ref + " ";
+    li.appendChild(ref);
+    li.appendChild(document.createTextNode(it.text));
+    ul.appendChild(li);
+  }
+  details.appendChild(ul);
+  bubble.appendChild(details);
+}
+
+async function ask(question) {
+  addMessage("user").textContent = question;
+  const bubble = addMessage("bot");
+  const textSpan = document.createElement("span");
+  textSpan.className = "cursor";
+  bubble.appendChild(textSpan);
+
+  let answer = "";
+  try {
+    const resp = await fetch("/api/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+    });
+    if (!resp.ok) throw new Error("Server error " + resp.status);
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line) continue;
+        const msg = JSON.parse(line);
+        if (msg.type === "sources") {
+          renderSources(bubble, msg.items);
+        } else if (msg.type === "token") {
+          answer += msg.text;
+          textSpan.textContent = answer;
+          chat.scrollTop = chat.scrollHeight;
+        } else if (msg.type === "error") {
+          answer += "\n\n[Error: " + msg.message + "]";
+          textSpan.textContent = answer;
+        }
+      }
+    }
+  } catch (e) {
+    textSpan.textContent = answer + "\n\n[Error: " + e.message + "]";
+  } finally {
+    textSpan.classList.remove("cursor");
+  }
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const question = input.value.trim();
+  if (!question) return;
+  input.value = "";
+  input.style.height = "auto";
+  send.disabled = true;
+  await ask(question);
+  send.disabled = false;
+  input.focus();
+});
+
+// Enter to send, Shift+Enter for newline; auto-grow the textarea.
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    form.requestSubmit();
+  }
+});
+input.addEventListener("input", () => {
+  input.style.height = "auto";
+  input.style.height = Math.min(input.scrollHeight, 160) + "px";
+});
+
+chat.addEventListener("click", (e) => {
+  const ex = e.target.closest(".ex");
+  if (ex && !send.disabled) {
+    input.value = ex.dataset.q;
+    form.requestSubmit();
+  }
+});
+</script>
+</body>
+</html>

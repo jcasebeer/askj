@@ -1,0 +1,14 @@
+[Unit]
+Description=Ask J Bible Rag
+After=network.target
+
+[Service]
+WorkingDirectory=/srv/askj
+ExecStart=/srv/askj/.venv/bin/uvicorn server:app --host 127.0.0.1 --port 8002
+Environment=HF_HOME=/srv/askj/.hf
+Restart=always
+User=www-data
+EnvironmentFile=/etc/askj.env
+
+[Install]
+WantedBy=multi-user.target

@@ -37,7 +37,7 @@ if [ ! -d "$APP/.cache" ] && [ -d .cache ]; then
 fi
 
 # Keep dependencies in sync (cheap no-op when nothing changed).
-sudo "$APP/.venv/bin/pip" install -q -r "$APP/requirements.txt"
+sudo "$APP/.venv/bin/pip" install -r "$APP/requirements.txt"
 
 # The service runs as www-data, so it must own everything it reads and the
 # caches it writes (venv, .cache, .hf).
